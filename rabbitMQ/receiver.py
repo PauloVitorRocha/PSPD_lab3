@@ -5,6 +5,7 @@ import pika
 import sys
 import threading
 import time
+import json
 
 
 connection = pika.BlockingConnection(
@@ -28,11 +29,14 @@ for binding_key in binding_keys:
 print(' [*] Waiting for {0} To exit press CTRL+C'.format(sys.argv[1]))
 
 def callback(ch, method, properties, body):
-    print(f'{method.routing_key} : {list(body)}')
-    message = [min(list(body)),max(list(body))]
+    body = json.loads(body)
+    # print(f'{method.routing_key} : {body}')
+    message = json.dumps([min(body),max(body)])
+    print ('msg', message)
+
     routing_key = 'resultado'
     channel.basic_publish(
-            exchange='resolve_vetor', routing_key=routing_key, body=bytearray(message))
+            exchange='resolve_vetor', routing_key=routing_key, body=(message))
     # print(" [x] Sent %r:%r" % (routing_key, message))
 
 

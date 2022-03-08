@@ -8,6 +8,11 @@ import math
 import time
 import numpy as np
 import signal
+import json
+
+def np_encoder(object):
+    if isinstance(object, np.generic):
+        return object.item()
 
 global maior
 global menor
@@ -30,14 +35,16 @@ def callback(ch, method, properties, body):
     global maior
     global menor
     global j
-    print(" [x] %r:%r" % (method.routing_key, list(body)))
+    body = json.loads(body)
+    print(" [x] %r:%r" % (method.routing_key, body))
     j+=1
-    if(list(body)[0] < menor):
-        menor = list(body)[0]
-    if(list(body)[1] > maior):
-        maior = list(body)[1]
+    if(body[0] < menor):
+        menor = body[0]
+    if(body[1] > maior):
+        maior = body[1]
     if(j == int(nMaquinas)):
         print(f"Os maiores e menores valores recebidos foram :\n Maior: {maior}\n Menor: {menor}")
+        sys.exit(0)
 
 
 def func():
@@ -60,7 +67,7 @@ def func():
 x = threading.Thread(target=func)
 x.daemon = True
 x.start()
-time.sleep(.2)
+time.sleep(1)
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='localhost'))
 channel = connection.channel()
@@ -83,7 +90,7 @@ split = np.array_split(array100, nMaquinas)
 for k, channels in enumerate(channelList):
     routing_key = channels
     split[k] = list(split[k])
-    bA = bytearray(split[k])
+    bA = json.dumps(split[k], default=np_encoder)
     channel.basic_publish(
         exchange='resolve_vetor', routing_key=routing_key, body=bA)
     # print(" [x] Sent %r:%r" % (routing_key, split[k]))
